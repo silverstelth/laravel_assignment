@@ -8,6 +8,7 @@ use App\Serializers\ItemsSerializer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use League\CommonMark\CommonMarkConverter;
+use App\Services\StatisticService;
 
 class ItemController extends Controller
 {
@@ -62,5 +63,20 @@ class ItemController extends Controller
                 'item' => new ItemSerializer($item)
             ]
         );
+    }
+
+    /**
+     * This container injected the StatisticService according to the advantage of Laravel
+     */
+    public function statistic(StatisticService $service): JsonResponse
+    {
+        return response()->json([
+            'statistic' => [
+                'count' => $service->get('count'),
+                'average' => $service->get('average'),
+                'website' => $service->get('website'),
+                'total' => $service->get('total'),
+            ]
+        ]);
     }
 }
