@@ -11,66 +11,55 @@ use League\CommonMark\CommonMarkConverter;
 
 class ItemController extends Controller
 {
+    private $rules = [
+        'name' => 'required|string|max:255',
+        'price' => 'required|numeric',
+        'url' => 'required|url',
+        'description' => 'required|string',
+    ];
+
     public function index()
     {
-        $items = Item::all();
+        $items = new ItemsSerializer(Item::all());
 
-        return JsonResponse::create(['items' => (new ItemsSerializer($items))->getData()]);
+        return response()->serialize(compact('items'));
     }
 
     public function store(Request $request)
     {
-        $this->validate($request, [
-          'name' => 'required|string|max:255',
-          'price' => 'required|numeric',
-           'url' => 'required|url',
-          'description' => 'required|string',
-        ]);
+        $validated = $request->validate($this->rules);
 
         $converter = new CommonMarkConverter(['html_input' => 'escape', 'allow_unsafe_links' => false]);
+        $validated['description'] = $converter->convert($validated['description'])->getContent();
 
-        $item = Item::create([
-            'name' => $request->get('name'),
-            'price' => $request->get('price'),
-            'url' => $request->get('url'),
-            'description' => $converter->convert($request->get('description'))->getContent(),
-        ]);
+        $item = new ItemSerializer(Item::create($validated));
 
-        $serializer = new ItemSerializer($item);
-
-        return new JsonResponse(['item' => $serializer->getData()]);
+        return response()->serialize(compact('item'));
     }
 
     public function show($id)
     {
-        $item = Item::findOrFail($id);
+        $item = new ItemSerializer(Item::findOrFail($id));
 
-        $serializer = new ItemSerializer($item);
-
-        return new JsonResponse(['item' => $serializer->getData()]);
+        return response()->serialize(compact('item'));
     }
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $this->validate($request, [
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'url' => 'required|url',
-            'description' => 'required|string',
-        ]);
+        $validated = $request->validate($this->rules);
 
         $converter = new CommonMarkConverter(['html_input' => 'escape', 'allow_unsafe_links' => false]);
 
         $item = Item::findOrFail($id);
-        $item->name = $request->get('name');
-        $item->url = $request->get('url');
-        $item->price = $request->get('price');
-        $item->description = $converter->convert($request->get('description'))->getContent();
+        $item->name = $validated['name'];
+        $item->url = $validated['url'];
+        $item->price = $validated['price'];
+        $item->description = $converter->convert($validated['description'])->getContent();
         $item->save();
-
-        return new JsonResponse(
+        
+        return response()->serialize(
             [
-                'item' => (new ItemSerializer($item))->getData()
+                'item' => new ItemSerializer($item)
             ]
         );
     }

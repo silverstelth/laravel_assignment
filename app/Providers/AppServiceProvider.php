@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Response;
+use Illuminate\Http\JsonResponse;
+use App\Serializers\AbstractSerializer;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,5 +28,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         //
+        Schema::defaultStringLength(191);
+
+        Response::macro('serialize', function ($values) {
+            return new JsonResponse(array_map(function($value) {
+                if ($value instanceof AbstractSerializer) {
+                    return $value->getData();
+                }
+                return $value;
+            },$values));
+        });
     }
 }
